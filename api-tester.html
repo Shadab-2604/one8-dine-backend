@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ONE8 DINE – API Tester</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0b0b0b;
+      color: #f2f2f2;
+      padding: 20px;
+    }
+
+    h1, h2 {
+      color: #d4a574;
+    }
+
+    .section {
+      border: 1px solid #333;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      background: #111;
+    }
+
+    input, button, textarea {
+      width: 100%;
+      margin: 6px 0;
+      padding: 8px;
+      border-radius: 4px;
+      border: none;
+      font-size: 14px;
+    }
+
+    button {
+      background: #d4a574;
+      color: #000;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    textarea {
+      height: 200px;
+      background: #000;
+      color: #00ff90;
+      font-family: monospace;
+    }
+
+    /* Toast styles */
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 18px;
+      border-radius: 6px;
+      font-weight: bold;
+      z-index: 9999;
+      animation: slideIn 0.3s ease;
+    }
+
+    .toast.success { background: #1f8f4d; }
+    .toast.error { background: #b83232; }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(40px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>🍽️ ONE8 DINE – FULL API TESTER</h1>
+
+<!-- USER REGISTRATION -->
+<div class="section">
+  <h2>User Registration</h2>
+  <input id="regName" placeholder="Full Name" />
+  <input id="regEmail" placeholder="Email" />
+  <input id="regPassword" placeholder="Password" />
+  <input id="regPhone" placeholder="Phone (optional)" />
+  <button onclick="userRegister()">Register User</button>
+</div>
+
+<!-- USER LOGIN -->
+<div class="section">
+  <h2>User Login</h2>
+  <input id="userEmail" placeholder="Email" />
+  <input id="userPassword" placeholder="Password" />
+  <button onclick="userLogin()">Login</button>
+  <button onclick="getMe()">Get Profile</button>
+</div>
+
+<!-- ADMIN LOGIN -->
+<div class="section">
+  <h2>Admin Login</h2>
+  <input id="adminUser" placeholder="Admin Username" />
+  <input id="adminPass" placeholder="Admin Password" />
+  <button onclick="adminLogin()">Admin Login</button>
+</div>
+
+<!-- MENU -->
+<div class="section">
+  <h2>Menu</h2>
+  <button onclick="getMenu()">Get All Menu</button>
+  <button onclick="getMenu('mains')">Get Mains</button>
+</div>
+
+<!-- AVAILABILITY -->
+<div class="section">
+  <h2>Table Availability</h2>
+  <input id="date" placeholder="YYYY-MM-DD" />
+  <input id="time" placeholder="HH:mm" />
+  <input id="guests" placeholder="Guests" />
+  <button onclick="checkAvailability()">Check Availability</button>
+</div>
+
+<!-- BOOKINGS -->
+<div class="section">
+  <h2>User Bookings</h2>
+  <button onclick="myBookings()">My Bookings</button>
+</div>
+
+<!-- ADMIN -->
+<div class="section">
+  <h2>Admin Dashboard</h2>
+  <button onclick="adminStats()">Stats</button>
+  <button onclick="adminBookings()">Bookings</button>
+  <button onclick="adminOrders()">Orders</button>
+  <button onclick="adminUsers()">Users</button>
+</div>
+
+<!-- RESPONSE -->
+<div class="section">
+  <h2>API Response</h2>
+  <textarea id="output"></textarea>
+</div>
+
+<script>
+  /* =========================
+     HARDCODED BACKEND URL
+  ========================== */
+  const API_BASE_URL = "http://localhost:3000";
+
+  let userToken = "";
+  let adminToken = "";
+
+  function showToast(msg, type = "success") {
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+    toast.innerText = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  }
+
+  async function api(path, method = "GET", body = null, token = "") {
+    const res = await fetch(API_BASE_URL + path, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: "Bearer " + token }),
+      },
+      body: body ? JSON.stringify(body) : null,
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw data;
+    return data;
+  }
+
+  function log(data) {
+    output.value = JSON.stringify(data, null, 2);
+  }
+
+  /* USER REGISTRATION */
+  async function userRegister() {
+    try {
+      const res = await api("/api/auth/signup", "POST", {
+        name: regName.value,
+        email: regEmail.value,
+        password: regPassword.value,
+        phone: regPhone.value,
+      });
+      log(res);
+      showToast("User registered successfully");
+    } catch (e) {
+      log(e);
+      showToast(e.message || "Registration failed", "error");
+    }
+  }
+
+  /* USER LOGIN */
+  async function userLogin() {
+    try {
+      const res = await api("/api/auth/login", "POST", {
+        email: userEmail.value,
+        password: userPassword.value,
+      });
+      userToken = res.token;
+      log(res);
+      showToast("User logged in");
+    } catch (e) {
+      log(e);
+      showToast("Login failed", "error");
+    }
+  }
+
+  async function getMe() {
+    try {
+      const res = await api("/api/auth/me", "GET", null, userToken);
+      log(res);
+      showToast("Profile fetched");
+    } catch {
+      showToast("Unauthorized", "error");
+    }
+  }
+
+  /* ADMIN LOGIN */
+  async function adminLogin() {
+    try {
+      const res = await api("/api/admin/auth/login", "POST", {
+        username: adminUser.value,
+        password: adminPass.value,
+      });
+      adminToken = res.token;
+      log(res);
+      showToast("Admin logged in");
+    } catch {
+      showToast("Admin login failed", "error");
+    }
+  }
+
+  /* MENU */
+  async function getMenu(category) {
+    try {
+      const url = category ? `/api/menu?category=${category}` : "/api/menu";
+      const res = await api(url);
+      log(res);
+      showToast("Menu loaded");
+    } catch {
+      showToast("Menu error", "error");
+    }
+  }
+
+  /* AVAILABILITY */
+  async function checkAvailability() {
+    try {
+      const q = `?date=${date.value}&time=${time.value}&guests=${guests.value}`;
+      const res = await api("/api/tables/availability" + q);
+      log(res);
+      showToast("Availability checked");
+    } catch {
+      showToast("Availability error", "error");
+    }
+  }
+
+  /* BOOKINGS */
+  async function myBookings() {
+    try {
+      const res = await api("/api/bookings/my", "GET", null, userToken);
+      log(res);
+      showToast("Bookings fetched");
+    } catch {
+      showToast("Bookings error", "error");
+    }
+  }
+
+  /* ADMIN DATA */
+  async function adminStats() {
+    log(await api("/api/admin/stats", "GET", null, adminToken));
+    showToast("Stats loaded");
+  }
+
+  async function adminBookings() {
+    log(await api("/api/admin/bookings", "GET", null, adminToken));
+    showToast("Bookings loaded");
+  }
+
+  async function adminOrders() {
+    log(await api("/api/admin/orders", "GET", null, adminToken));
+    showToast("Orders loaded");
+  }
+
+  async function adminUsers() {
+    log(await api("/api/admin/users", "GET", null, adminToken));
+    showToast("Users loaded");
+  }
+</script>
+
+</body>
+</html>
