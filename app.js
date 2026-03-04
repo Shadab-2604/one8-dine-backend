@@ -22,6 +22,13 @@ const errorMiddleware = require("./middleware/error.middleware");
 const app = express();
 
 /* =======================
+   TRUST PROXY (RENDER FIX)
+======================= */
+
+// VERY IMPORTANT for Render / Railway / Heroku
+app.set("trust proxy", 1);
+
+/* =======================
    GLOBAL MIDDLEWARES
 ======================= */
 
