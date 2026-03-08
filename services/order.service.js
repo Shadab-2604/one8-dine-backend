@@ -1,7 +1,15 @@
 const Order = require("../models/Order.model");
 const MenuItem = require("../models/MenuItem.model");
+const availabilityService = require("./availability.service");
 
-exports.create = async (userId, { items }) => {
+exports.create = async (userId, { tableId, date, time, guests, items }) => {
+  // Check availability
+  const availableTables = await availabilityService.check({ date, time, guests });
+  const isAvailable = availableTables.some(table => table._id.toString() === tableId);
+  if (!isAvailable) {
+    throw new Error("Table not available for the selected date and time");
+  }
+
   let total = 0;
   const orderItems = [];
 
@@ -20,19 +28,24 @@ exports.create = async (userId, { items }) => {
 
   return Order.create({
     user: userId,
+    table: tableId,
+    date,
+    time,
+    guests,
     items: orderItems,
     totalAmount: total,
   });
 };
 
 exports.getByUser = async (userId) => {
-  return Order.find({ user: userId }).populate("items.menuItem");
+  return Order.find({ user: userId }).populate("items.menuItem").populate("table");
 };
 
 exports.getAll = async () => {
   return Order.find()
     .populate("user")
-    .populate("items.menuItem");
+    .populate("items.menuItem")
+    .populate("table");
 };
 
 exports.updateStatus = async (id, status) => {

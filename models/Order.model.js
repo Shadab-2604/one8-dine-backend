@@ -8,6 +8,28 @@ const orderSchema = new mongoose.Schema(
       required: true,
     },
 
+    table: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Table",
+      required: true,
+    },
+
+    date: {
+      type: String, // YYYY-MM-DD
+      required: true,
+    },
+
+    time: {
+      type: String, // HH:mm (24h)
+      required: true,
+    },
+
+    guests: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+
     items: [
       {
         menuItem: {
@@ -35,7 +57,7 @@ const orderSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "confirmed", "served", "cancelled"],
+      enum: ["pending", "confirmed", "preparing", "served", "cancelled"],
       default: "pending",
     },
   },

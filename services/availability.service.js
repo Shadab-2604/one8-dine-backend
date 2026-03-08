@@ -1,5 +1,6 @@
 const Table = require("../models/Table.model");
 const Booking = require("../models/Booking.model");
+const Order = require("../models/Order.model");
 
 exports.check = async ({ date, time, guests }) => {
   // only treat undefined as missing; coerce guests to number
@@ -27,11 +28,23 @@ exports.check = async ({ date, time, guests }) => {
     status: { $ne: 'cancelled' },
   }).select('table');
 
+  const orderedTables = await Order.find({
+    date,
+    time,
+    status: { $ne: 'cancelled' },
+  }).select('table');
+
   const bookedTableIds = bookedTables.map(
     (b) => b.table.toString()
   );
 
+  const orderedTableIds = orderedTables.map(
+    (o) => o.table.toString()
+  );
+
+  const unavailableTableIds = new Set([...bookedTableIds, ...orderedTableIds]);
+
   return tables.filter(
-    (table) => !bookedTableIds.includes(table._id.toString())
+    (table) => !unavailableTableIds.has(table._id.toString())
   );
 };
